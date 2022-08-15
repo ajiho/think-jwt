@@ -1,5 +1,39 @@
 {
-    "name": "ajiho/think-jwt",
-    "license": "MIT",
-    "require": {}
+  "name": "ajiho/think-jwt",
+  "description": "lcobucci/jwt integration for thinkphp6",
+  "keywords": [
+    "thinkphp6",
+    "JWT",
+    "JWS"
+  ],
+  "homepage": "https://gitee.com/ajiho/think-jwt",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "ajiho\\": "src/"
+    }
+  },
+  "authors": [
+    {
+      "name": "ajiho",
+      "email": "lujiahao@88.com",
+      "homepage": "https://gitee.com/ajiho",
+      "role": "Developer"
+    }
+  ],
+  "minimum-stability": "stable",
+  "require": {
+    "php": "^7.1",
+    "topthink/framework": "^6.0.0",
+    "lcobucci/jwt": "^3.4",
+    "ext-json": "*"
+  },
+  "extra": {
+    "think": {
+      "config": {
+        "jwt": "src/config.php"
+      }
+    }
+  }
 }
