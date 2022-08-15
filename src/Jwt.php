@@ -1,6 +1,6 @@
 <?php
 
-namespace ajiho;
+namespace x852;
 
 use DateTimeImmutable;
 use DateTimeZone;
@@ -8,12 +8,14 @@ use Lcobucci\Clock\SystemClock;
 use Lcobucci\JWT\Configuration;
 use Lcobucci\JWT\Signer\Hmac\Sha256;
 use Lcobucci\JWT\Signer\Key\InMemory;
+
 use Lcobucci\JWT\Validation\Constraint\IssuedBy;
 use Lcobucci\JWT\Validation\Constraint\PermittedFor;
-use Lcobucci\JWT\Validation\Constraint\ValidAt;
+use Lcobucci\JWT\Validation\Constraint\LooseValidAt;
 use Lcobucci\JWT\Validation\Constraint\IdentifiedBy;
 use Lcobucci\JWT\Validation\Constraint\RelatedTo;
 use Lcobucci\JWT\Validation\Constraint\SignedWith;
+
 use think\facade\Config;
 use think\facade\Cache;
 
@@ -125,10 +127,9 @@ class Jwt
         }
 
         //验证声明iat, nbf, 和exp(支持 leeway 配置)
-        $timezone = new DateTimeZone(Config::get('jwt.timezone'));
-        $now = new SystemClock($timezone);
-        $valid_at = new ValidAt($now);
-        if (!$config->validator()->validate($token, $valid_at)) {
+        $now = new SystemClock(new DateTimeZone(Config::get('jwt.timezone')));
+        $looseValidAt = new LooseValidAt($now);
+        if (!$config->validator()->validate($token, $looseValidAt)) {
             return ['code' => 10004, 'msg' => 'token已过期', 'data' => []];
         }
 
