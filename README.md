@@ -41,7 +41,8 @@ return [
 
 # 使用
 
-think-jwt的使用方式非常简单,因为它不管你是如何传递token参数的，你可以选择Header、Cookie、Param，那都是你的自由,think-jwt只纯粹的提供3个核心静态方法(create、parse、logout)和一个辅助静态方法(getRequestToken)
+think-jwt的使用方式非常简单,因为它不管你是如何传递token参数的，你可以选择Header、Cookie、Param，那都是你的自由,think-jwt只纯粹的提供3个核心静态方法(
+create、parse、logout)和一个辅助静态方法(getRequestToken)
 
 ## getRequestToken
 
@@ -117,11 +118,7 @@ eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvYXBpLnh4eC5jb20iLCJ
 | 10006 | 主题验证失败 |
 | 10007 | 签名密钥验证失败 |
 
-
-
-
 下面是在中间件中验证token的示例代码:
-
 
 ```php
 //生成token
@@ -165,14 +162,11 @@ public function userInfo(Request $request)
 }
 ```
 
-
-
-
 ## logout
 
 Jwt的token一经签发是它是无法被注销的，所以只能通过服务端来进行判断(结果到这里又变成有状态的了),这里
 是通过把要注销的token存储到缓存中，所以配置文件`jwt.php`中它有个`delete_key`配置就是用来实现注销功能的，默认
-缓存的key是`delete_token`,如果和你的业务发生冲突，你可以自行更改。 
+缓存的key是`delete_token`,如果和你的业务发生冲突，你可以自行更改。
 这里的的缓存用的是tp6框架自带的缓存`cache`方法
 
 
@@ -187,11 +181,29 @@ public function logout()
 }
 ```
 
-此时客户端要是还是非法使用已经被注销的token来解析就会提示token已被注销
+此时客户端继续使用已经被注销的token来解析就会提示token已被注销,它过不了中间件的验证
 
 ```php
-$parseResult = Jwt::parse(Jwt::getRequestToken());
+/**
+ * 验证token中间件
+ * 
+ * @param \think\Request $request
+ * @param \Closure $next
+ * @return Response
+ */
+public function handle($request, \Closure $next)
+{
+    $parseResult = Jwt::parse(Jwt::getRequestToken());
 
-dd($parseResult);//['code' => 10000, 'msg' => 'token已经被注销', 'data' => []]
+    if ($parseResult['code'] !== 200) {
+       dd($parseResult);//['code' => 10000, 'msg' => 'token已经被注销', 'data' => []]，因此被注销后的token它是无法继续向下执行的。
+       return json(['code' => 401, 'msg' => 'token解析失败', 'data' => []]);
+    }
+    
+    //验证通过,将得到的用户id,放到请求信息中去,方便后续使用
+    $request->user_id = $parseResult['data'];//100
+
+    return $next($request);
+}
 ```
 
