@@ -26,7 +26,7 @@
   "require": {
     "php": "^7.4 || ^8.0",
     "topthink/framework": "^6.0.0",
-    "lcobucci/jwt": "^4.1",
+    "lcobucci/jwt": "~4.1.5",
     "ext-json": "*"
   },
   "extra": {
