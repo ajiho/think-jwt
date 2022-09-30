@@ -51,7 +51,8 @@ think-jwt只纯粹的提供3个核心静态方法(create、parse、logout)和一
 
 > 注意
 
-如果你是使用`apache`服务器的话，需要在tp6项目`public/.htaccess`重写文件中添加上
+如果你是使用`apache`服务器的话，需要在tp6项目`public/.htaccess`重写文件中添加上一下重写规则，
+否则可能接收不到请求头中`Authorization`的值。
 
 ~~~
 #Authorization Headers
@@ -142,6 +143,7 @@ public function handle($request, \Closure $next)
     return $next($request);
 }
 ```
+
 
 
 ## logout
