@@ -157,10 +157,10 @@ class Jwt
 
 
     /**
-     * 获取请求头传递过来的HTTP_AUTHORIZATION字段的值
+     * 获取请求头传递过来的HTTP_AUTHORIZATION字段的值,成功返回token字符串失败返回false
      * @return false|string
      */
-    public static function getAuthorization()
+    public static function getRequestToken()
     {
         if (empty($_SERVER['HTTP_AUTHORIZATION'])) {
             return false;

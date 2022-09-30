@@ -42,13 +42,39 @@ return [
 # 使用
 
 think-jwt的使用方式非常简单,因为它不管你是如何传递token参数的，你可以选择Header、Cookie、Param，那都是你的自由
-think-jwt只纯粹的提供3个核心静态方法(create、parse、logout)和一个辅助静态方法(getAuthorization)
-
+think-jwt只纯粹的提供3个核心静态方法(create、parse、logout)和一个辅助静态方法(getRequestToken)
 
 ## getAuthorization
 
-获取请求头中Authorization的值
+一般情况都是在请求头中通过`Authorization`字段传递token,
+所以该方法就是快速获取请求头中`Authorization`的值
 
+> 注意
+
+如果你是使用apache服务器的话，需要在tp6项目`public/.htaccess`重写文件中添加上
+
+~~~
+#Authorization Headers
+RewriteCond %{HTTP:Authorization} ^(.+)$
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+~~~
+
+`.htaccess`完整内容如下
+
+~~~
+<IfModule mod_rewrite.c>
+  Options +FollowSymlinks -Multiviews
+  RewriteEngine On
+
+  #Authorization Headers
+  RewriteCond %{HTTP:Authorization} ^(.+)$
+  RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteRule ^(.*)$ index.php/$1 [QSA,PT,L]
+</IfModule>
+~~~
 
 ## create
 
@@ -89,51 +115,58 @@ eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvYXBpLnh4eC5jb20iLCJ
 | 10006 | 主题验证失败 |
 | 10007 | 签名密钥验证失败 |
 
-示例代码:
+
+
+在中间件中验证token示例代码(假如是通过用户id生成的token):
+
 
 ```php
-//生成token
-$token = \ajiho\Jwt::create(100);
+/**
+ * 验证token中间件
+ * 
+ * @param \think\Request $request
+ * @param \Closure $next
+ * @return Response
+ */
+public function handle($request, \Closure $next)
+{
+    $parseResult = Jwt::parse(Jwt::getRequestToken());
 
-//解析token,extract函数可以把数组分别作为变量解析出来 
-extract(\ajiho\Jwt::parse($token));
+    if ($parseResult['code'] !== 200) {
+       return json(['code' => 401, 'msg' => 'token解析失败', 'data' => []]);
+    }
+    
+    //验证通过,将得到的用户id,放到请求信息中去,方便后续使用
+    $request->user_id = $parseResult['data'];
 
-if($code == 200){
-    //解析成功
-    dd($data); //100
-    //在项目中这里一般会把解析结果直接放到request请求对象方便后面全局使用
-    //$request->user_id = 2;
-}else{
-    //解析失败,可以打印状态码和msg得到具体的原因是什么
-    dd($code,$msg);
-    //在项目中一般这里直接通过api响应方法直接返回token解析失败就行了
-    return json(['code' => 401, 'msg' => 'token解析失败', 'data' => []]);
+    return $next($request);
 }
 ```
+
 
 ## logout
 
 Jwt的token一经签发是它是无法被注销的，所以只能通过服务端来进行判断(结果到这里又变成有状态的了),这里
 是通过把要注销的token存储到缓存中，所以配置文件`jwt.php`中它有个`delete_key`配置就是用来实现注销功能的，默认
-缓存的key是`delete_token`,如果和你的业务发生冲突，你可以自行更改。 这里的的缓存用的是tp6框架自带
-的缓存`cache`方法
+缓存的key是`delete_token`,如果和你的业务发生冲突，你可以自行更改。 
+这里的的缓存用的是tp6框架自带的缓存`cache`方法
 
 
 > 代码示例
 
 ```php
-//生成token
-$token = \ajiho\Jwt::create(['id'=>100,'name'=>'jack']);
-
-
-//注销token
-\ajiho\Jwt::logout($token);
-
-//解析token  extract函数可以把数组分别作为变量解析出来
-extract(\ajiho\Jwt::parse($token));
-if($code == 200){
-    dd($data);
-}else{
-    dd($code,$msg);//10000 该token已经注销
+//退出登录
+public function logout()
+{
+    Jwt::logout(Jwt::getRequestToken());
+    return json(['code' => 200, 'msg' => '用户退出成功', 'data' => []]);
 }
 ```
+
+此时客户端要是还是非法使用已经被注销的token来解析就会提示token已被注销
+
+```php
+$parseResult = Jwt::parse(Jwt::getRequestToken());
+dd($parseResult);//['code' => 10000, 'msg' => 'token已经被注销', 'data' => []]
+```
+
