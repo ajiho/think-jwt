@@ -78,7 +78,7 @@ class Jwt
 
 
         //注销token逻辑
-        $delete_token = Cache::get(Config::get('jwt.delete_key')) ?: [];
+        $delete_token = self::getDeleteToken();
         if (in_array($token, $delete_token)) {
             //token已被注销
             return ['code' => 10000, 'msg' => '该token已经注销', 'data' => []];
@@ -147,7 +147,7 @@ class Jwt
     {
 
         //取缓存中注销的token数组
-        $delete_token = Cache::get(Config::get('jwt.delete_key')) ?: [];
+        $delete_token = self::getDeleteToken();
 
         //把传递过来的token再存入缓存
         $delete_token[] = $token;
@@ -155,4 +155,31 @@ class Jwt
         //再次把新的缓存数据重新存入缓存中，缓存时间必须大于等于jwt生成时的有效期,否则注销不成功
         Cache::set(Config::get('jwt.delete_key'), $delete_token, Config::get('jwt.exp'));
     }
+
+
+    /**
+     * 获取请求头传递过来的HTTP_AUTHORIZATION字段的值,成功返回token字符串失败返回false
+     * @return false|string
+     */
+    public static function getRequestToken()
+    {
+        if (empty($_SERVER['HTTP_AUTHORIZATION'])) {
+            return false;
+        }
+        $header = $_SERVER['HTTP_AUTHORIZATION'];
+        $method = 'bearer';
+        //去除token中可能存在的bearer标识
+        return trim(str_ireplace($method, '', $header));
+    }
+
+
+    /**
+     * 从缓存中拿到已经被注销的token
+     * @return array|mixed
+     */
+    private static function getDeleteToken()
+    {
+        return Cache::get(Config::get('jwt.delete_key')) ?: [];
+    }
+
 }
