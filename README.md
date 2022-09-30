@@ -44,14 +44,14 @@ return [
 think-jwt的使用方式非常简单,因为它不管你是如何传递token参数的，你可以选择Header、Cookie、Param，那都是你的自由
 think-jwt只纯粹的提供3个核心静态方法(create、parse、logout)和一个辅助静态方法(getRequestToken)
 
-## getAuthorization
+## getRequestToken
 
 一般情况都是在请求头中通过`Authorization`字段传递token,
-所以该方法就是快速获取请求头中`Authorization`的值
+所以该方法就是快速获取请求头中`Authorization`的token值
 
 > 注意
 
-如果你是使用apache服务器的话，需要在tp6项目`public/.htaccess`重写文件中添加上
+如果你是使用`apache`服务器的话，需要在tp6项目`public/.htaccess`重写文件中添加上
 
 ~~~
 #Authorization Headers
@@ -117,7 +117,7 @@ eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvYXBpLnh4eC5jb20iLCJ
 
 
 
-在中间件中验证token示例代码(假如是通过用户id生成的token):
+新建一个中间件,在中间件中添加如下验证token的示例代码(假如是通过用户id生成的token)
 
 
 ```php
@@ -167,6 +167,7 @@ public function logout()
 
 ```php
 $parseResult = Jwt::parse(Jwt::getRequestToken());
+
 dd($parseResult);//['code' => 10000, 'msg' => 'token已经被注销', 'data' => []]
 ```
 
