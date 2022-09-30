@@ -41,8 +41,7 @@ return [
 
 # 使用
 
-think-jwt的使用方式非常简单,因为它不管你是如何传递token参数的，你可以选择Header、Cookie、Param，那都是你的自由
-think-jwt只纯粹的提供3个核心静态方法(create、parse、logout)和一个辅助静态方法(getRequestToken)
+think-jwt的使用方式非常简单,因为它不管你是如何传递token参数的，你可以选择Header、Cookie、Param，那都是你的自由,think-jwt只纯粹的提供3个核心静态方法(create、parse、logout)和一个辅助静态方法(getRequestToken)
 
 ## getRequestToken
 
@@ -82,9 +81,11 @@ RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 生成token
 
 ```php
-$token = \ajiho\Jwt::create(100);
-$token = \ajiho\Jwt::create('php是世界上最好的语言');
-$token = \ajiho\Jwt::create(['id'=>100,'name'=>'jack']);
+use ajiho\Jwt;
+
+$token = Jwt::create(100);
+$token = Jwt::create('php是世界上最好的语言');
+$token = Jwt::create(['id'=>100,'name'=>'jack']);
 ```
 
 执行成功返回token字符串
@@ -102,7 +103,7 @@ eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvYXBpLnh4eC5jb20iLCJ
 ['code' => xx, 'msg' => 'xx', 'data' => []]
 ~~~
 
-### 状态码说明
+状态码说明
 
 | 状态码 | 说明 |
 |--|--|
@@ -118,10 +119,15 @@ eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvYXBpLnh4eC5jb20iLCJ
 
 
 
-新建一个中间件,在中间件中添加如下验证token的示例代码(假如是通过用户id生成的token)
+
+下面是在中间件中验证token的示例代码:
 
 
 ```php
+//生成token
+$token = Jwt::create(100);
+
+
 /**
  * 验证token中间件
  * 
@@ -138,11 +144,27 @@ public function handle($request, \Closure $next)
     }
     
     //验证通过,将得到的用户id,放到请求信息中去,方便后续使用
-    $request->user_id = $parseResult['data'];
+    $request->user_id = $parseResult['data'];//100
 
     return $next($request);
 }
 ```
+
+然后你在任意地方只需要依赖注入request请求对象，就能得到登录的用户id
+
+```php
+//获取当前登录用户的信息
+public function userInfo(Request $request)
+{
+    
+    $user = User::where('status', 1)
+        ->find($request->user_id);
+    
+    return json($user);
+
+}
+```
+
 
 
 
