@@ -8,19 +8,18 @@ use Lcobucci\Clock\SystemClock;
 use Lcobucci\JWT\Configuration;
 use Lcobucci\JWT\Signer\Hmac\Sha256;
 use Lcobucci\JWT\Signer\Key\InMemory;
-
 use Lcobucci\JWT\Validation\Constraint\IssuedBy;
 use Lcobucci\JWT\Validation\Constraint\PermittedFor;
-use Lcobucci\JWT\Validation\Constraint\LooseValidAt;
+use Lcobucci\JWT\Validation\Constraint\ValidAt;
 use Lcobucci\JWT\Validation\Constraint\IdentifiedBy;
 use Lcobucci\JWT\Validation\Constraint\RelatedTo;
 use Lcobucci\JWT\Validation\Constraint\SignedWith;
-
 use think\facade\Config;
 use think\facade\Cache;
 
 class Jwt
 {
+
 
     /**
      * 得到配置对象
@@ -40,7 +39,7 @@ class Jwt
     {
         try {
             $config = self::getConfig();
-            $now = new DateTimeImmutable('now', new DateTimeZone(Config::get('jwt.timezone')));
+            $now = new DateTimeImmutable('now',  new DateTimeZone(Config::get('jwt.timezone')));
             return $config->builder()
                 //主题
                 ->relatedTo(Config::get('jwt.sub'))
@@ -101,7 +100,7 @@ class Jwt
 
         //验证声明是否aud包含预期值
         $auds = array_filter(Config::get('jwt.aud', []), 'is_string');
-        foreach ($auds as $aud) {
+        foreach($auds as $aud){
             if (!$config->validator()->validate($token, new PermittedFor($aud))) {
                 return ['code' => 10003, 'msg' => '接收人验证失败', 'data' => []];
             }
@@ -126,9 +125,10 @@ class Jwt
         }
 
         //验证声明iat, nbf, 和exp(支持 leeway 配置)
-        $now = new SystemClock(new DateTimeZone(Config::get('jwt.timezone')));
-        $looseValidAt = new LooseValidAt($now);
-        if (!$config->validator()->validate($token, $looseValidAt)) {
+        $timezone = new DateTimeZone(Config::get('jwt.timezone'));
+        $now = new SystemClock($timezone);
+        $valid_at = new ValidAt($now);
+        if (!$config->validator()->validate($token, $valid_at)) {
             return ['code' => 10004, 'msg' => 'token已过期', 'data' => []];
         }
 
@@ -148,6 +148,7 @@ class Jwt
 
         //取缓存中注销的token数组
         $delete_token = self::getDeleteToken();
+
         //把传递过来的token再存入缓存
         $delete_token[] = $token;
 
@@ -180,6 +181,5 @@ class Jwt
     {
         return Cache::get(Config::get('jwt.delete_key')) ?: [];
     }
-
 
 }
