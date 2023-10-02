@@ -97,36 +97,36 @@ eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvYXBpLnh4eC5jb20iLCJ
 
 ## parse
 
-用于解析token，返回值是一个包含code,msg,data的数组,解析返回不同的状态码和说明,
+用于解析token，返回值是一个包含`code`,`msg`,`data`的数组,解析返回不同的状态码和说明,
 当然了,这一部分逻辑推荐放中间件中去执行
 
 ~~~
-['code' => xx, 'msg' => 'xx', 'data' => []]
+['code' => xx, 'msg' => 'xx', 'data' => null]
 ~~~
 
 状态码说明
 
-| 状态码 | 说明 |
-|--|--|
-| 200 | token解析成功,可以通过data字段得到token中存储的数据 |
-| 10000 | token已经被注销 |
-| 10001 | token解码失败 |
-| 10002 | 签发人验证失败 |
-| 10003 | 接收人验证失败 |
-| 10004 | token已过期 |
-| 10005 | 编号验证失败 |
-| 10006 | 主题验证失败 |
-| 10007 | 签名密钥验证失败 |
+| 状态码   | 说明                                                              |
+|-------|-----------------------------------------------------------------|
+| 200   | token解析成功,可以通过data字段得到token中存储的数据(生成token传入的什么类型的数据返回就是什么类型的数据) |
+| 10000 | token已经被注销                                                      |
+| 10001 | token解码失败                                                       |
+| 10002 | 签发人验证失败                                                         |
+| 10003 | 接收人验证失败                                                         |
+| 10004 | token已过期                                                        |
+| 10005 | 编号验证失败                                                          |
+| 10006 | 主题验证失败                                                          |
+| 10007 | 签名密钥验证失败                                                        |
 
 下面是在中间件中验证token的示例代码:
 
 ```php
-//生成token
-$token = Jwt::create(100);
 
+//生成token
+$token = Jwt::create(100);// eyJ0eXAiOiJKV1...
 
 /**
- * 验证token中间件
+ * 验证token的中间件
  * 
  * @param \think\Request $request
  * @param \Closure $next
@@ -134,10 +134,19 @@ $token = Jwt::create(100);
  */
 public function handle($request, \Closure $next)
 {
-    $parseResult = Jwt::parse(Jwt::getRequestToken());
+    // 这里我们直接解析上面生成的token
+    // $parseResult = Jwt::parse('eyJ0eXAiOiJKV1...');
 
-    if ($parseResult['code'] !== 200) {
-       return json(['code' => 401, 'msg' => 'token解析失败', 'data' => []]);
+    //您也可以不传递它会默认解析请求头中的HTTP_AUTHORIZATION字段(v2.0.3+)
+    $parseResult = Jwt::parse();
+    
+    if ($parseResult['code'] !== 200) {//不等于200等于解析失败
+        
+        // 您可以在这里笼统的直接返回token解析失败,然后给前端返回一个401
+        return json(['code' => 401, 'msg' => 'token解析失败', 'data' => []]);
+       
+        //如果您有特殊需求，可以根据上面的状态码获取具体的错误消息，比如可以判断token是否已经过期等
+        //...
     }
     
     //验证通过,将得到的用户id,放到请求信息中去,方便后续使用
@@ -176,7 +185,9 @@ Jwt的token一经签发是它是无法被注销的，所以只能通过服务端
 //退出登录
 public function logout()
 {
-    Jwt::logout(Jwt::getRequestToken());
+    //Jwt::logout('eyJ0eXAiOiJKV1...');
+    //您也可以不传递,它会默认注销请求头中HTTP_AUTHORIZATION传递过来的token(v2.0.3+)
+    Jwt::logout();
     return json(['code' => 200, 'msg' => '用户退出成功', 'data' => []]);
 }
 ```
@@ -193,7 +204,7 @@ public function logout()
  */
 public function handle($request, \Closure $next)
 {
-    $parseResult = Jwt::parse(Jwt::getRequestToken());
+    $parseResult = Jwt::parse('eyJ0eXAiOiJKV1...');
 
     if ($parseResult['code'] !== 200) {
        dd($parseResult);//['code' => 10000, 'msg' => 'token已经被注销', 'data' => []]，因此被注销后的token它是无法继续向下执行的。
